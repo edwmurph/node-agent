@@ -17,6 +17,6 @@
     "koa": "2.13.4"
   },
   "devDependencies": {
-    "@edwmurph/eslint-config": "3.3.0"
+    "@edwmurph/eslint-config": "6.0.0"
   }
 }
