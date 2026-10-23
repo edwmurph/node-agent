@@ -9,14 +9,18 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:debug": "eslint --debug --print-config index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@koa/router": "10.1.1",
     "http-errors": "2.0.0",
-    "koa": "2.13.4"
+    "koa": "2.16.4"
   },
   "devDependencies": {
     "@edwmurph/eslint-config": "6.0.0"
+  },
+  "version": "0.0.2",
+  "engines": {
+    "node": ">=24.22.1 <25"
   }
 }
