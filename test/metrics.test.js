@@ -36,8 +36,10 @@ test('real entrypoint preserves startup, metrics, routing and NODE_NAME', async 
     assert.match(output, /starting compatibility-fixture agent/);
     assert.match(output, /app listening on port 80/);
   } finally {
-    const exited = once(child, 'exit');
-    child.kill('SIGTERM');
-    await exited;
+    if (child.exitCode === null && child.signalCode === null) {
+      const exited = once(child, 'exit');
+      child.kill('SIGTERM');
+      await exited;
+    }
   }
 });
