@@ -23,11 +23,18 @@ jobs:
       - name: Verify actual runtime and installed packages
         run: |
           docker run --rm --network none node-agent:verify node -e 'if (process.version !== "v24.22.1") process.exit(1); console.log(JSON.stringify(process.versions, null, 2))'
-          docker run --rm --network none node-agent:verify sh -c 'cat /etc/os-release && dpkg-query -W && npm --version && npm ls --omit=dev'
+          docker run --rm --network none node-agent:verify sh -c 'cat /etc/os-release && apk info -vv'
+          docker run --rm --network none node-agent:verify node -e 'const fs = require("node:fs"); console.log({koa: require("koa/package.json").version, router: require("@koa/router/package.json").version}); if (fs.existsSync("/usr/local/lib/node_modules/npm")) process.exit(1)'
       - name: Verify metrics compatibility in isolated container
-        run: docker run --rm --network none -v "$PWD/test:/app/test:ro" node-agent:verify npm test
+        run: docker run --rm --network none -v "$PWD/test:/app/test:ro" node-agent:verify node --test test/*.test.js
       - name: Audit production dependencies with current advisories
-        run: docker run --rm node-agent:verify npm audit --omit=dev
+        run: |
+          mkdir audit
+          container=$(docker create node-agent:verify)
+          docker cp "$container:/app/package.json" audit/package.json
+          docker cp "$container:/app/package-lock.json" audit/package-lock.json
+          docker rm "$container"
+          docker run --rm -v "$PWD/audit:/app:ro" -w /app node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 npm audit --omit=dev
       - name: Scan runtime and OS with current advisories
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -96,11 +103,18 @@ jobs:
           docker pull "$IMAGE"
           docker image inspect "$IMAGE" --format '{{json .RepoDigests}} {{.Architecture}}'
           docker run --rm --network none "$IMAGE" node -e 'if (process.version !== "v24.22.1") process.exit(1); console.log(JSON.stringify(process.versions, null, 2))'
-          docker run --rm --network none "$IMAGE" sh -c 'cat /etc/os-release && dpkg-query -W && npm --version && npm ls --omit=dev'
+          docker run --rm --network none "$IMAGE" sh -c 'cat /etc/os-release && apk info -vv'
+          docker run --rm --network none "$IMAGE" node -e 'const fs = require("node:fs"); console.log({koa: require("koa/package.json").version, router: require("@koa/router/package.json").version}); if (fs.existsSync("/usr/local/lib/node_modules/npm")) process.exit(1)'
       - name: Verify published metrics compatibility
-        run: docker run --rm --network none -v "$PWD/test:/app/test:ro" "$IMAGE" npm test
+        run: docker run --rm --network none -v "$PWD/test:/app/test:ro" "$IMAGE" node --test test/*.test.js
       - name: Audit published production dependencies
-        run: docker run --rm "$IMAGE" npm audit --omit=dev
+        run: |
+          mkdir audit
+          container=$(docker create "$IMAGE")
+          docker cp "$container:/app/package.json" audit/package.json
+          docker cp "$container:/app/package-lock.json" audit/package-lock.json
+          docker rm "$container"
+          docker run --rm -v "$PWD/audit:/app:ro" -w /app node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 npm audit --omit=dev
       - name: Scan immutable published image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

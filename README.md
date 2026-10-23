@@ -7,12 +7,15 @@ logs. Preserve the existing metric spelling for dashboard compatibility.
 
 ## Build and verify
 
-Use the pinned Node 24 LTS base and locked production dependencies:
+Use the pinned official Node 24 LTS Alpine base and locked production dependencies.
+The final image starts Node directly and excludes npm, Corepack and Yarn. CI audits
+the lockfile extracted from the actual runtime image in a separate tooling container:
 
 ```sh
 docker build -t node-agent:verify .
-docker run --rm --network none -v "$PWD/test:/app/test:ro" node-agent:verify npm test
-docker run --rm node-agent:verify npm audit --omit=dev
+docker run --rm --network none -v "$PWD/test:/app/test:ro" node-agent:verify node --test test/*.test.js
+docker build --target dependencies -t node-agent:dependencies .
+docker run --rm node-agent:dependencies npm audit --omit=dev
 ```
 
 The test starts the real entrypoint inside an isolated container with a thermal
